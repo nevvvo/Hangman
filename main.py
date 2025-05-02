@@ -4,161 +4,173 @@ RUSSIAN_CHARS = 'абвгдеёжзийклмнопрстуфхцчшщъыьэ�
 
 HANGMAN_PICS = [
     """
-       -----
-       |   |
-           |
-           |
-           |
-           |
+       ----- 
+       |   | 
+           | 
+           | 
+           | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-       O   |
-           |
-           |
-           |
+       ----- 
+       |   | 
+       O   | 
+           | 
+           | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-       O   |
-       |   |
-           |
-           |
+       ----- 
+       |   | 
+       O   | 
+       |   | 
+           | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-       O   |
-      /|   |
-           |
-           |
+       ----- 
+       |   | 
+       O   | 
+      /|   | 
+           | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-       O   |
-      /|\\  |
-           |
-           |
+       ----- 
+       |   | 
+       O   | 
+      /|\\  | 
+           | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-       O   |
-      /|\\  |
-      /    |
-           |
+       ----- 
+       |   | 
+       O   | 
+      /|\\  | 
+      /    | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-       O   |
-      /|\\  |
-      / \\  |
-           |
+       ----- 
+       |   | 
+       O   | 
+      /|\\  | 
+      / \\  | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-      [O   |
-      /|\\  |
-      / \\  |
-           |
+       ----- 
+       |   | 
+      [O   | 
+      /|\\  | 
+      / \\  | 
+           | 
     =========
     """,
     """
-       -----
-       |   |
-      [O]  |
-      /|\\  |
-      / \\  |
-           |
+       ----- 
+       |   | 
+      [O]  | 
+      /|\\  | 
+      / \\  | 
+           | 
     =========
     """
 ]
 
 
-def get_game_command():
-    while True:
-        cmd = input("Введите 'с' (старт) или 'в' (выход): ").strip().lower()
-        if cmd in ['с', 'в']:
-            return cmd
-        print("Неверный ввод. Введите 'с' или 'в'.")
+class HangmanGame:
+    def __init__(self):
+        self.max_mistakes = len(HANGMAN_PICS) - 1
+        self.word = ""
+        self.user_word = []
+        self.used_letters = []
+        self.mistakes = 0
 
+    def get_word(self):
+        try:
+            with open("words.txt", "r", encoding='utf-8') as f:
+                words = [line.strip() for line in f if line.strip()]
+                self.word = random.choice(words)
+        except FileNotFoundError:
+            print("Файл words.txt не найден.")
+            exit()
 
-def get_letter_input(used_letters):
-    while True:
-        letter = input("Введите букву: ").strip().lower()
-        if len(letter) != 1 or letter not in RUSSIAN_CHARS:
-            print("Неправильный ввод. Введите ОДНУ русскую букву.")
-        elif letter in used_letters:
-            print("Вы уже вводили эту букву.")
+    def find_letter_positions(self, letter):
+        return [i for i, char in enumerate(self.word) if char == letter]
+
+    def display_game_state(self):
+        print(HANGMAN_PICS[self.mistakes])
+        print("Слово:", ' '.join(self.user_word))
+        print("Ошибки:", self.mistakes, "/ 8")
+        print("Использованные буквы:", ', '.join(self.used_letters))
+
+    def get_letter_input(self):
+        while True:
+            letter = input("Введите букву: ").strip().lower()
+            if len(letter) != 1 or letter not in RUSSIAN_CHARS:
+                print("Неправильный ввод. Введите ОДНУ русскую букву.")
+            elif letter in self.used_letters:
+                print("Вы уже вводили эту букву.")
+            else:
+                return letter
+
+    def play_round(self):
+        self.get_word()
+        self.user_word = ['_' for _ in self.word]
+        self.used_letters = []
+        self.mistakes = 0
+
+        while self.mistakes < self.max_mistakes and ''.join(self.user_word) != self.word:
+            self.display_game_state()
+            letter = self.get_letter_input()
+            self.used_letters.append(letter)
+
+            if letter in self.word:
+                positions = self.find_letter_positions(letter)
+                for i in positions:
+                    self.user_word[i] = letter
+            else:
+                self.mistakes += 1
+
+        self.display_game_state()
+
+        if ''.join(self.user_word) == self.word:
+            print("🎉 Победа! Загаданное слово:", self.word)
         else:
-            return letter
+            print("💀 Поражение. Было слово:", self.word)
 
 
-def get_word():
-    with open("words.txt", "r", encoding='utf-8') as f:
-        words = f.readline().split(", ")
-        return random.choice(words)
+class GameController:
+    def __init__(self):
+        self.game = HangmanGame()
 
+    def get_game_command(self):
+        while True:
+            cmd = input("Введите 'с' (старт) или 'в' (выход): ").strip().lower()
+            if cmd in ['с', 'в']:
+                return cmd
+            print("Неверный ввод. Введите 'с' или 'в'.")
 
-def find_letter_positions(word, letter):
-    return [i for i, char in enumerate(word) if char == letter]
-
-
-def display_game_state(user_word, mistakes, used_letters):
-    print(HANGMAN_PICS[mistakes])
-    print("Слово:", ' '.join(user_word))
-    print("Ошибки:", mistakes, "/ 8")
-    print("Использованные буквы:", ', '.join(used_letters))
-
-
-def play_round():
-    word = get_word()
-    user_word = ['_' for _ in word]
-    used_letters = []
-    mistakes = 0
-
-    while mistakes < 9 and ''.join(user_word) != word:
-        display_game_state(user_word, mistakes, used_letters)
-        letter = get_letter_input(used_letters)
-        used_letters.append(letter)
-
-        if letter in word:
-            positions = find_letter_positions(word, letter)
-            for i in positions:
-                user_word[i] = letter
-        else:
-            mistakes += 1
-
-    display_game_state(user_word, mistakes, used_letters)
-
-    if ''.join(user_word) == word:
-        print("🎉 Победа! Загаданное слово:", word)
-    else:
-        print("💀 Поражение. Было слово:", word)
-
-
-def main():
-    print("Добро пожаловать в игру ВИСЕЛИЦА!")
-    while True:
-        command = get_game_command()
-        if command == "с":
-            play_round()
-        else:
-            print("До свидания!")
-            break
+    def main(self):
+        print("Добро пожаловать в игру ВИСЕЛИЦА!")
+        while True:
+            command = self.get_game_command()
+            if command == "с":
+                self.game.play_round()
+            else:
+                print("До свидания!")
+                break
 
 
 if __name__ == "__main__":
-    main()
+    controller = GameController()
+    controller.main()
